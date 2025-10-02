@@ -34,7 +34,7 @@ The toolbox leverages **TopoToolbox** for DEM handling, flow routing, and coordi
    
 Note: For now, the toolkit is not compatible with Topotoolbox v3.
 
-## Contact
+## Status
 This toolbox is still under development and will continue to evolve.
 
 ## Contact
