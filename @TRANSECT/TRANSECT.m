@@ -84,7 +84,6 @@ classdef TRANSECT
     %     The transect width ('w') can be set manually or derived using
     %     maskWidth helper function
     %
-    %
     % See also: GRIDobj, FLOWobj, STREAMobj
     %
     % Author: Bastien Mathieux (bastien.mathieux@gmail.com)
@@ -817,3 +816,4 @@ classdef TRANSECT
     end
 
 end
+
