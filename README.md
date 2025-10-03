@@ -22,7 +22,8 @@ The toolbox leverages **TopoToolbox** for DEM handling, flow routing, and coordi
 - **Helpers**  
   - `SelectDivide.m` — Interactive function to select drainage divide segments from a `DIVIDEobj` (TopoToolbox). 
   - `shortpath.m` — Simplifies and reconnects unordered `(x,y)` coordinates into a valid shortest path. 
-  - `ProgressBar.m` — optional utility for tracking iterations. 
+  - `ProgressBar.m` — optional utility for tracking iterations.
+  - `maskWidth.m` — Computes optimal transect half-width (`w`) and DEM padding (`wi`) from a logical mask (e.g., floodplain or basin outline) for use with `TRANSECT` and `pairing`.
 
 ## Installation
 
