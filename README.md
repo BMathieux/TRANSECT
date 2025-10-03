@@ -6,7 +6,7 @@ Repository associated with *"Relief dynamics of the Vosges through morphometric 
 
 The **TRANSECT** toolbox provides a framework to build, analyze, and visualize cross-transects perpendicular to a user-defined baseline in a Digital Elevation Model (DEM).  
 
-TRANSECT constructs a baseline (e.g., drainage divide or river reach) and builds connected paths perpendicular to it using either geometric buffers or flow-routing along the topography. Each transect is stored in a structured object, with detailed fields for interpolated paths (`int`) and connected paths (`conn`). The object supports flexible resampling, statistics computation, and visualization.  
+TRANSECT constructs a baseline (e.g., drainage divide or river reach) and builds connected paths perpendicular to it using either geometric buffers or flow-routing along the topography. Each transect is stored in a structured object, with detailed fields for interpolated paths (`int`) and connected nodes (`conn`). The object supports flexible resampling, statistics computation, and visualization.  
 
 The toolbox leverages **TopoToolbox** for DEM handling, flow routing, and coordinate transformations.  
 
