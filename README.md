@@ -12,7 +12,7 @@ The toolbox leverages **TopoToolbox** for DEM handling, flow routing, and coordi
 
 ## Structure  
 
-- **Core functions**  
+- **TRANSECT functions**  
   - `TRANSECT.m` — class constructor to build transects along a baseline.  
   - `plot.m` — visualize baseline and transects.  
   - `calcStats.m` — compute statistics on transect geometry.  
