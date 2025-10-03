@@ -16,7 +16,8 @@ The toolbox leverages **TopoToolbox** for DEM handling, flow routing, and coordi
   - `TRANSECT.m` — class constructor to build transects along a baseline.  
   - `plot.m` — visualize baseline and transects.  
   - `resample.m` — resample transects at uniform spacing.  
-  - `extract.m` — accessor to extract arrays (x, y, z, d, indices) by transect index.  
+  - `extract.m` — accessor to extract arrays (x, y, z, d, indices) by transect index.
+  - `pairing.m` — pair transect nodes with either coordinates or a logical mask (e.g., floodplain or basin outline).  
 
 - **Helpers**  
   - `SelectDivide.m` — Interactive function to select drainage divide segments from a `DIVIDEobj` (TopoToolbox). 
