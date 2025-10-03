@@ -81,17 +81,11 @@ classdef TRANSECT
     %     
     %     Note
     %     ----
-    %     The transect width ('w') can be set manually or derived from the trunk
-    %     drainage basin geometry. Example:
+    %     The transect width ('w') can be set manually or derived using
+    %     maskWidth helper function
     %
-    %     DB = drainagebasins(FD,S.IXgrid(end));
-    %     DB = logical(DB.Z);
-    %     bw = bwdist(~DB);
-    %     w  = ceil(max(bw(:))./ite);
     %
-    %     wi = (w+1)*ite;  % effective padded half-width
-    %
-    % See also: GRIDobj, FLOWobj, STREAMobj, trunk
+    % See also: GRIDobj, FLOWobj, STREAMobj
     %
     % Author: Bastien Mathieux (bastien.mathieux@gmail.com)
     % Date: May, 2024
@@ -821,4 +815,5 @@ classdef TRANSECT
         end
     end
     end
+
 end
