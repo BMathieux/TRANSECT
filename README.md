@@ -15,7 +15,7 @@ The toolbox leverages **TopoToolbox** for DEM handling, flow routing, and coordi
 - **TRANSECT functions**  
   - `TRANSECT.m` — class constructor to build transects along a baseline.  
   - `plot.m` — visualize baseline and transects.  
-  - `resample.m` — resample transects at uniform spacing.  
+  - `resample.m` — resample TRANSECT object with another DEM resolution.  
   - `extractT.m` — accessor to extract arrays (x, y, z, d, indices) by transect index.
   - `pairing.m` — pair transect nodes with either coordinates or a logical mask (e.g., floodplain or basin outline).  
 
@@ -23,7 +23,7 @@ The toolbox leverages **TopoToolbox** for DEM handling, flow routing, and coordi
   - `SelectDivide.m` — Interactive function to select drainage divide segments from a `DIVIDEobj` (TopoToolbox). 
   - `shortpath.m` — Simplifies and reconnects unordered `(x,y)` coordinates into a valid shortest path. 
   - `ProgressBar.m` — optional utility for tracking iterations.
-  - `maskWidth.m` — Computes optimal transect half-width (`w`) and DEM padding (`wi`) from a logical mask (e.g., floodplain or basin outline) for use with `TRANSECT` and `pairing`.
+  - `maskWidth.m` — Computes optimal transect half-width (`w`) from a logical mask (e.g., floodplain or basin outline) for use with `TRANSECT` and `pairing`.
 
 ## Installation
 
@@ -31,9 +31,7 @@ The toolbox leverages **TopoToolbox** for DEM handling, flow routing, and coordi
 2. In MATLAB, navigate to the `TRANSECTs-main` folder and run:
    ```matlab
    addpath(genpath('TRANSECT-main'));
-3. Ensure TopoToolbox v2 (https://github.com/TopoToolbox/topotoolbox) is installed and added to your MATLAB path. MATLAB R2020a or later is recommended (tested on R2022b). Statistics and Machine Learning Toolbox is required. The Parallel Computing Toolbox is optional for parallel processing.
-   
-Note: For now, the toolkit is not compatible with Topotoolbox v3.
+3. Ensure TopoToolbox v3 (https://github.com/TopoToolbox/topotoolbox3) is installed and added to your MATLAB path. MATLAB R2023b or later is recommended (tested on R2025b). Statistics and Machine Learning Toolbox is required. The Mapping Toolbox is recommended, and the Parallel Computing Toolbox is optional for parallel processing.
 
 ## Status
 This toolbox is still under development and will continue to evolve.
