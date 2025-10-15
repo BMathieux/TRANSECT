@@ -40,7 +40,6 @@ p = ttlemset(p);
 %  This uplift history is retrieved from linear inversion of river profiles of 
 %  the Lauch catchment in the Vosges Mountains calibrated with TCN-derived 
 %  denudation rates (Mathieux 2025, PhD thesis).
-%  Users can easily replace these data with their own uplift histories.
 
 uplift_mode = "custom";    % "custom" or "synthetic"
 
@@ -175,3 +174,4 @@ for i = 1:numel(Uinterp)
 end
 
 fprintf('=== TTLEM–TRANSECT simulation complete ===\n');
+
