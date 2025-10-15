@@ -7,16 +7,23 @@ classdef TRANSECT
     %
     % Description
     %
-    %     TRANSECT constructs a transect object along the baseline defined by 
-    %     coordinates x and y on the digital elevation model DEM (GRIDobj).
-    %     The transect is built perpendicular to the baseline with a specified width 
-    %     w and number of iterations ite, allowing for detailed topographic profiling.
+    %     TRANSECT creates a transect object along a user-defined baseline defined by
+    %     coordinates x and y on a digital elevation model DEM (GRIDobj). The algorithm
+    %     generates transects on both sides of the baseline according to the selected
+    %     connection mode, enabling consistent extraction and alignment of geomorphic
+    %     metrics across multiple landscape domains.
     %
-    %     The object pads the DEM to avoid boundary issues and constructs digraphs 
-    %     for path calculations. Data is stored separately for each side of the baseline.
+    %     Two connection modes are available:
+    %         (1) 'geometric' – constructs sub-perpendicular transects to the baseline at
+    %             regular intervals using Euclidean distance, preserving the native geometry
+    %             and node spacing of curved baselines.
+    %         (2) 'flow' – traces pathways derived from DEM-based flow directions,
+    %             connecting nodes according to natural topographic gradients and following
+    %             hydrological or sediment transport routes.
     %
-    %     An additional option 'method' allows switching between 'geometric' (default, perpendicular buffer-based) 
-    %     and 'flow' (flow routing along topographic divides).
+    %     The DEM is padded to prevent boundary effects, and directed graphs are
+    %     constructed for efficient path computation and spatial referencing. Results are
+    %     stored separately for each side of the baseline within the TRANSECT object.
     %
     %     Path data (x, y, z, d, ix) is organized hierarchically as:
     %         T.int{i1}(i2).x{i3}, T.conn{i1}(i2).z{i3}, etc.
@@ -885,4 +892,5 @@ classdef TRANSECT
             end
 
     end
+
 end
