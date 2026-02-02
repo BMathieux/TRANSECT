@@ -1,6 +1,6 @@
 # TRANSECT
 
-Repository associated with *"Relief dynamics of the Vosges through morphometric and cosmogenic nuclides analyses: a case of transient landscapes in a low deformation context"* (PhD manuscript, submitted to jury, not yet defended).  
+Repository associated with *"Relief dynamics of the Vosges through morphometric and cosmogenic nuclides analyses: a case of transient landscapes in a low deformation context"* (PhD thesis, Mathieux, 2025).  
 
 ## Overview  
 
