@@ -35,6 +35,7 @@ fprintf('Parameters loaded.\n');
 fprintf('Loading and preprocessing DEM...\n');
 DEM = GRIDobj(DEMfile);
 DEM = fillsinks(DEM);
+DEM.Z(DEM.Z<280) = nan; % remove low-elevation artefacts (specific to Lauch DEM)
 
 %% ====================== FLOODPLAIN EXTRACTION ===========================
 fprintf('Extracting floodplain mask using graphflood...\n');
@@ -121,3 +122,4 @@ set(gca,'FontWeight','bold','FontSize',22,'FontName','Arial')
 
 fprintf('Figures generated successfully.\n');
 fprintf('=== Analysis complete ===\n\n');
+
