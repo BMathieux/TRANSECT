@@ -5,34 +5,46 @@ function T = pairing(T, varargin)
 %   (x,y). The function searches for intersections or proximity matches
 %   between transect cross-sections and the input coordinates.
 %
-%   T = PAIRING(T,mask) pairs nodes of T using a logical or numeric grid 
+%   T = PAIRING(T,S) pairs nodes of T with a STREAMobj S.
+%
+%   T = PAIRING(T,D) pairs nodes of T with a DIVIDEobj D.
+%
+%   T = PAIRING(T,mask) pairs nodes of T using a logical or numeric grid
 %   mask (same size as T.DEM.Z). In this case, intersections are defined by
 %   the region provided by mask, which could represent e.g. a floodplain or
 %   geomorphic domain.
 %
 %   This updates T.int and T.conn with interpolated transect nodes and
-%   connection nodes, and computes geometric statistics (width, height, 
+%   connection nodes, and computes geometric statistics (width, height,
 %   slopes, elevations) stored in T.stats.
 %
 %   Name-Value options:
-%       'type'         - 'both' (require connections on both sides) 
+%       'type'         - 'both' (require connections on both sides)
 %                        or 'any' (accept one-sided, default).
-%       'connectivity' - Neighborhood definition for mask search: 
+%       'connectivity' - Neighborhood definition for mask search:
 %                        'D1','D8','D16' (default: 'D8').
 %       'verbose'      - true/false (default: false).
 %       'parallel'     - true/false (default: false).
-%       'maxlength'    - true/false (default: false), truncate to shortest 
+%       'maxlength'    - true/false (default: false), truncate to shortest
 %                        side length.
 %       'gap'          - scalar (default: 1), tolerance for missing nodes.
-%       'order'        - 'first' or 'last' (default: 'first'), used only 
-%                        when (x,y) input is given.
+%       'order'        - 'first' or 'last' (default: 'first'), used for
+%                        coordinate, STREAMobj, and DIVIDEobj pairing.
 %
-%   Example
-%       % Pair transects with coordinates
-%       T = pairing(T,x,y,'order','last');
+%   Paired object (T.pair)
+%   ----------------------
+%   pairing stores the paired object in T.pair. If pairing has not been
+%   applied, T.pair is empty ([]).
 %
-%       % Pair transects with a mask
-%       T = pairing(T,mask,'type','both','connectivity','D16');
+%   Fields:
+%       T.pair.typ   - 'xy', 'STREAMobj', 'DIVIDEobj', or 'mask'
+%       T.pair.obj   - paired object and/or source coordinates
+%       T.pair.bid   - paired-object index for each baseline node
+%                     * coordinate/object mode: bid(i2) is the paired
+%                       object index linked to baseline node i2
+%                     * mask mode: list of paired baseline indices
+%       T.pair.ok    - logical vector of paired baseline nodes
+%       T.pair.opt   - pairing options used to build the paired object
 %
 %   See also TRANSECT
 
@@ -41,13 +53,16 @@ function T = pairing(T, varargin)
     end
     
     % detect input mode
-    if numel(varargin)==1 && isequal(size(varargin{1}),size(T.DEM.Z))
-        mode='mask';       % mask same size as DEM
+    if ~isempty(varargin) && (islogical(varargin{1}) || isnumeric(varargin{1})) && ...
+            isequal(size(varargin{1}),size(T.DEM.Z))
+        mode='mask';       % mask same size as DEM, with optional name-value pairs
+    elseif ~isempty(varargin) && (isa(varargin{1},'STREAMobj') || isa(varargin{1},'DIVIDEobj'))
+        mode='object';     % STREAMobj or DIVIDEobj converted to coordinates
     elseif numel(varargin)>=2 && isnumeric(varargin{1}) && isnumeric(varargin{2}) ...
             && isequal(size(varargin{1}),size(varargin{2}))
         mode='intersect';  % coordinate vectors
     else
-        error('Second input must be either (x,y) or mask matching DEM size.')
+        error('Second input must be x/y, STREAMobj, DIVIDEobj, or mask matching DEM size.')
     end
     
     % parser
@@ -57,6 +72,9 @@ function T = pairing(T, varargin)
         case 'mask'
             isMask=@(v)(islogical(v)||isnumeric(v))&&isequal(size(v),size(T.DEM.Z));
             addRequired(p,'mask',isMask);
+        case 'object'
+            addRequired(p,'obj',@(v) isa(v,'STREAMobj') || isa(v,'DIVIDEobj'));
+            addParameter(p,'order','first',@(v)ismember(v,{'first','last'}));
         case 'intersect'
             addRequired(p,'x',@isnumeric);
             addRequired(p,'y',@isnumeric);
@@ -79,9 +97,24 @@ function T = pairing(T, varargin)
     mlen = r.maxlength;
     gap  = r.gap;
     if strcmp(mode,'mask')
-        mask = r.mask; ord = [];
+        mask = r.mask; ord = []; otyp = 'mask'; obj0 = [];
+    elseif strcmp(mode,'object')
+        [x,y,ind,obj0,otyp] = objxy(T.DEM,r.obj);
+        ord = r.order;
     else
-        x = r.x(:); y = r.y(:); ord = r.order;
+        x = r.x(:); y = r.y(:);
+        ind = coord2ind(T.DEM,x,y);
+        obj0 = struct('typ','xy','obj',[],'x',x,'y',y,'ix',ind);
+        otyp = 'xy';
+        ord = r.order;
+    end
+    
+    % store paired object (before GPU / cleaning)
+    if strcmp(mode,'mask')
+        m0 = mask;
+    else
+        x0 = x;
+        y0 = y;
     end
     
     % send DEM/mask/x,y to GPU if requested
@@ -90,22 +123,29 @@ function T = pairing(T, varargin)
         T.DEM.refmat = gpuArray(T.DEM.refmat);
         if strcmp(mode,'mask')
             mask = gpuArray(mask);
-        else
-            x = gpuArray(x); y = gpuArray(y);
         end
     end
     
     % main loop over transect nodes
-    nC = numel(T.x);
+    if isempty(T.int)
+        nC = 0;
+    else
+        nC = numel(T.int{1});
+    end
     if vb, PB = ProgressBar(nC,'taskname','Pairing...','ui','cli'); end
     
-    % precompute intersections if coordinate mode
-    if strcmp(mode,'intersect')
-        ind=coord2ind(T.DEM,x,y); ob=isnan(ind);
+    % precompute intersections if coordinate/object mode
+    if ~strcmp(mode,'mask')
+        ob=isnan(ind);
         if any(ob), warning('TopoToolbox:outsidegrid','Some pts out-of-bound.'); 
             x(ob)=[]; y(ob)=[]; ind=ind(~ob); 
         end
         if isempty(ind), warning('No valid pts.'); return, end
+        x0 = x;
+        y0 = y;
+        obj0.x = x;
+        obj0.y = y;
+        obj0.ix = ind;
     else
         ind=[];
     end
@@ -151,11 +191,56 @@ function T = pairing(T, varargin)
         T.DEM.refmat = gather(T.DEM.refmat);
     end
     
-    % compute stats
-    T = T.calcStats();
+    % attach paired object to TRANSECT object
+    if strcmp(mode,'mask')
+        ok=false(nC,1);
+        for i2=1:nC
+            v1=any(cellfun(@(u)~isempty(u),T.int{1}(i2).x));
+            v2=any(cellfun(@(u)~isempty(u),T.int{2}(i2).x));
+            if strcmp(tp,'both'), ok(i2)=v1&&v2; else, ok(i2)=v1||v2; end
+        end
+        T.pair = struct('typ','mask','obj',m0,'bid',find(ok),'ok',ok, ...
+            'opt',struct('type',tp,'connectivity',con,'gap',gap,'maxlength',mlen));
+    else
+        ok=false(nC,1);
+        for i2=1:nC
+            v1=any(cellfun(@(u)~isempty(u),T.int{1}(i2).x));
+            v2=any(cellfun(@(u)~isempty(u),T.int{2}(i2).x));
+            if strcmp(tp,'both'), ok(i2)=v1&&v2; else, ok(i2)=v1||v2; end
+        end
 
+        bid=nan(nC,1);
+        [xb,yb]=activebase(T);
+        for i2=1:nC
+            if ~ok(i2), continue, end
+            ix1=vertcat(T.conn{1}(i2).ix{:});
+            ix2=vertcat(T.conn{2}(i2).ix{:});
+            ixh=intersect(ind,unique([ix1;ix2],'stable'));
+            if isempty(ixh), continue, end
+            if numel(ixh)==1
+                k=find(ind==ixh(1),1);
+            else
+                [xp,yp]=ind2coord(T.DEM,ixh);
+                [~,im]=min(hypot(xp-xb(i2),yp-yb(i2)));
+                k=find(ind==ixh(im),1);
+            end
+            if ~isempty(k)
+                bid(i2)=k;
+            end
+        end
+
+        obj0.x = x0;
+        obj0.y = y0;
+        obj0.ix = ind;
+        T.pair = struct('typ',otyp,'obj',obj0,'bid',bid,'ok',ok, ...
+            'opt',struct('type',tp,'connectivity',con,'gap',gap,'order',ord));
+    end
+    
+    % update stats
+    if ~isempty(T.stats); T = stats(T); end
 
 end
+
 
 function T = pair(T, i2, ind, con, tp, met, varargin)
 %PAIR Pair transect paths with intersections or mask constraints
@@ -365,7 +450,11 @@ function T = mask_validation(T, con, bw, varargin)
             error('Unknown connectivity: %s',con);
     end
 
-    nB=numel(T.x);
+    if isempty(T.int)
+        nB = 0;
+    else
+        nB = numel(T.int{1});
+    end
     for i2=1:nB
         id=[T.int{1}(i2).ix{1}; T.int{2}(i2).ix{1}];
         if isempty(id), continue, end
@@ -467,3 +556,55 @@ function T = mask_validation(T, con, bw, varargin)
     end
 end
 
+
+function [xb,yb] = activebase(T)
+%ACTIVEBASE Reconstruct active baseline from transect path starts
+
+    if isempty(T.int)
+        xb=[]; yb=[];
+        return
+    end
+
+    n=numel(T.int{1});
+    xb=nan(n,1); yb=nan(n,1);
+
+    for i=1:n
+        for i1=1:2
+            for i3=1:numel(T.int{i1}(i).x)
+                if ~isempty(T.int{i1}(i).x{i3})
+                    xb(i)=T.int{i1}(i).x{i3}(1);
+                    yb(i)=T.int{i1}(i).y{i3}(1);
+                    break
+                end
+            end
+            if ~isnan(xb(i)), break, end
+        end
+    end
+end
+
+function [x,y,ix,obj0,typ] = objxy(DEM,obj0)
+%OBJXY Convert STREAMobj or DIVIDEobj to x/y coordinates
+
+    if isa(obj0,'STREAMobj')
+        x = obj0.x(:);
+        y = obj0.y(:);
+        typ = 'STREAMobj';
+
+    elseif isa(obj0,'DIVIDEobj')
+        ix0 = obj0.IX(:);
+        [x,y] = ind2coord(obj0,ix0);
+        x = x(:);
+        y = y(:);
+        typ = 'DIVIDEobj';
+
+    else
+        error('Object must be STREAMobj or DIVIDEobj.')
+    end
+
+    ok = isfinite(x) & isfinite(y);
+    x = x(ok);
+    y = y(ok);
+    ix = coord2ind(DEM,x,y);
+
+    obj0 = struct('typ',typ,'obj',obj0,'x',x,'y',y,'ix',ix);
+end
