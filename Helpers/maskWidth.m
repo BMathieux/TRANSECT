@@ -29,7 +29,7 @@ if isempty(d)
     return
 end
 
-w   = ceil(max(d(:))/ite)*1.02;
+w   = ceil(max(d(:))/ite)*1.1;
 wi  = w*ite;
 
 end
